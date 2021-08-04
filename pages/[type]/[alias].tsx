@@ -1,21 +1,37 @@
-import {MenuItem} from '../../interfaces/menu.interface';
-
-import {ProductModel} from '../../interfaces/product.interface';
-import {TopPageModel, TopLevelCategory} from '../../interfaces/page.interface';
-import {withLayout} from './../../layout/Layout';
-import {GetStaticProps, GetStaticPaths, GetStaticPropsContext} from 'next';
-import {firstLevelMenu} from '../../helpers/helpers';
-import {ParsedUrlQuery} from 'querystring';
+import {GetStaticPaths, GetStaticProps, GetStaticPropsContext} from 'next';
+import React from 'react';
+import {withLayout} from '../../layout/Layout';
 import axios from 'axios';
-import {API} from './../../helpers/api';
-import {TopPageComponent} from './../../page-components/TopPageComponent/TopPageComponent';
+import {MenuItem} from '../../interfaces/menu.interface';
+import {TopLevelCategory, TopPageModel} from '../../interfaces/page.interface';
+import {ProductModel} from '../../interfaces/product.interface';
+import {firstLevelMenu} from '../../helpers/helpers';
+import {TopPageComponent} from '../../page-components';
+import {API} from '../../helpers/api';
+import Head from 'next/head';
+import {Error404} from '../404';
+import {ParsedUrlQuery} from 'querystring';
+
 function TopPage({firstCategory, page, products}: TopPageProps): JSX.Element {
+  if (!page || !products) {
+    return <Error404 />;
+  }
+
   return (
-    <TopPageComponent
-      firstCategory={firstCategory}
-      page={page}
-      products={products}
-    ></TopPageComponent>
+    <>
+      <Head>
+        <title>{page.metaTitle}</title>
+        <meta name="description" content={page.metaDescription} />
+        <meta property="og:title" content={page.metaTitle} />
+        <meta property="og:description" content={page.metaDescription} />
+        <meta property="og:type" content="article" />
+      </Head>
+      <TopPageComponent
+        firstCategory={firstCategory}
+        page={page}
+        products={products}
+      />
+    </>
   );
 }
 
@@ -31,7 +47,6 @@ export const getStaticPaths: GetStaticPaths = async () => {
       menu.flatMap((s) => s.pages.map((p) => `/${m.route}/${p.alias}`))
     );
   }
-
   return {
     paths,
     fallback: true,
@@ -52,7 +67,6 @@ export const getStaticProps: GetStaticProps<TopPageProps> = async ({
       notFound: true,
     };
   }
-
   try {
     const {data: menu} = await axios.post<MenuItem[]>(API.topPage.find, {
       firstCategory: firstCategoryItem.id,
@@ -76,12 +90,12 @@ export const getStaticProps: GetStaticProps<TopPageProps> = async ({
     return {
       props: {
         menu,
-        products,
         firstCategory: firstCategoryItem.id,
         page,
+        products,
       },
     };
-  } catch (error) {
+  } catch {
     return {
       notFound: true,
     };
@@ -90,7 +104,7 @@ export const getStaticProps: GetStaticProps<TopPageProps> = async ({
 
 interface TopPageProps extends Record<string, unknown> {
   menu: MenuItem[];
-  page: TopPageModel;
   firstCategory: TopLevelCategory;
+  page: TopPageModel;
   products: ProductModel[];
 }
